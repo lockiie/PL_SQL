@@ -840,3 +840,67 @@ SELECT *
 FROM PRODUCTS
 WHERE PRO_NAME = 'Mouse' OR PRO_NAME = 'Celular'
 ORDER BY PRO_NAME;
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+---                    CONTINUAÇÃO
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*
+  Montar uma consulta para conciliar se o saldo dos produtos na tabela de “PRODUTO” está correto, o saldo
+  de um produto é a soma de todas as entradas subtraindo todas as saídas registradas na tabela de
+  movimento do produto MOV_PRODUTO
+*/
+
+SELECT P.PRO_ID, P.PRO_NAME, P.PRO_QTY, 
+       M.PRM_BALANCE
+FROM PRODUCTS P,
+     (SELECT SUM(DECODE(PMT_ID, 0, PRM_QTY, PRM_QTY * -1)) PRM_BALANCE, -- PMT_ID = 0 = ENTRADA, PMT_ID = 1 = SAÍDA 
+             M.PRO_ID
+      FROM PRODUCTS_MOV M
+      GROUP BY M.PRO_ID) M
+WHERE P.PRO_ID = M.PRO_ID(+); --SE O PRODUTO NÃO TEM NENHUMA MOVIMENTAÇÃO NO ESTOQUE
+
+/*
+ Montar uma consulta para apresentar os clientes e o valor total gasto por cliente
+*/
+
+SELECT C.CSM_ID, C.CSM_NAME,
+       O.ORD_VALUE_SALES, O.ORD_VALUE_PURCHASES
+FROM CUSTOMERS C,
+     (SELECT SUM(DECODE(O.ORT_ID, 1, O.ORD_VALUE, 0)) ORD_VALUE_SALES,  -- ORT_ID = 0 = COMPRA
+             SUM(DECODE(O.ORT_ID, 0, O.ORD_VALUE, 0)) ORD_VALUE_PURCHASES, -- ORT_ID = 1 = VENDA
+             O.CSM_ID
+      FROM ORDERS O
+      GROUP BY O.CSM_ID
+     ) O
+WHERE C.CSM_ID = O.CSM_ID(+);
+
+/*
+  Montar uma consulta com os 20 produtos que têm mais saída e a soma total dos valores vendidos destes
+  produtos.
+*/
+
+--Coloquei apelidos para ficar mais fácil a visualização
+SELECT P.PRO_ID COD_PRODUTO, P.PRO_NAME NOME_PRODUTO, P.PRO_QTY QTD_PRODUTO_EM_ESTOQUE, 
+       M.PRM_PURCHASES TOTAL_QTD_MOV_COMPRAS, M.PRM_SALES TOTAL_QTD_MOV_VENDAS,
+       O.ORI_VALUE_SALES TOTAL_VALOR_VENDAS, O.ORI_VALUE_PURCHASES TOTAL_VALOR_COMPRAS
+FROM PRODUCTS P,
+     (SELECT SUM(DECODE(PMT_ID, 0, PRM_QTY, 0)) PRM_PURCHASES, -- PMT_ID = 0 = ENTRADA
+             SUM(DECODE(PMT_ID, 1, PRM_QTY, 0)) PRM_SALES, --PMT_ID = 1 = SAÍDA 
+             M.PRO_ID
+      FROM PRODUCTS_MOV M
+      GROUP BY M.PRO_ID) M,
+      (SELECT SUM(DECODE(O.ORT_ID, 1, I.ORI_PRICE * I.ORI_QTY, 0)) ORI_VALUE_SALES,  -- ORT_ID = 0 = COMPRA
+              SUM(DECODE(O.ORT_ID, 0, I.ORI_PRICE * I.ORI_QTY, 0)) ORI_VALUE_PURCHASES, -- ORT_ID = 1 = VENDA
+              I.PRO_ID
+       FROM ORDERS O, ORDERS_ITEMS I
+       WHERE O.ORD_ID = I.ORD_ID
+       GROUP BY I.PRO_ID) O
+WHERE P.PRO_ID = M.PRO_ID(+)
+  AND P.PRO_ID = O.PRO_ID(+)
+ORDER BY NVL(M.PRM_SALES, 0) DESC --ORDENAR PARA OS PRODUTOS QUE TIVERAM MAIS VENDAS EM TERMO DE QUANTIDADE
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY --PRONTO PARA A PAGINAÇÃO/ 20 PRODUTOS
+
+
+
