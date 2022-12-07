@@ -863,25 +863,35 @@ WHERE P.PRO_ID = M.PRO_ID(+); --SE O PRODUTO NÃO TEM NENHUMA MOVIMENTAÇÃO NO 
 
 /*
  Montar uma consulta para apresentar os clientes e o valor total gasto por cliente
+ 
 */
-
+/*
+  Foi pedido para mostrar apenas vendas, favor ignorar as compras que o cliente fez.
+  
+  Na arquitetura do projeto, a tabela CUSTOMERS está sendo utilizado como uma tabela de registro de pessoas, pois, quando é realizado uma venda
+  a tabela tem a finalizade de ser cliente, já quando é realizado uma ordem de compra, seria um fornecedor.
+*/
 SELECT C.CSM_ID, C.CSM_NAME,
        O.ORD_VALUE_SALES, O.ORD_VALUE_PURCHASES
 FROM CUSTOMERS C,
-     (SELECT SUM(DECODE(O.ORT_ID, 1, O.ORD_VALUE, 0)) ORD_VALUE_SALES,  -- ORT_ID = 0 = COMPRA
-             SUM(DECODE(O.ORT_ID, 0, O.ORD_VALUE, 0)) ORD_VALUE_PURCHASES, -- ORT_ID = 1 = VENDA
+     (SELECT SUM(DECODE(O.ORT_ID, 1, O.ORD_VALUE, 0)) ORD_VALUE_SALES,  -- ORT_ID = 1 = VENDA
+             SUM(DECODE(O.ORT_ID, 0, O.ORD_VALUE, 0)) ORD_VALUE_PURCHASES, -- ORT_ID = 0 = COMPRA
              O.CSM_ID
       FROM ORDERS O
       GROUP BY O.CSM_ID
      ) O
 WHERE C.CSM_ID = O.CSM_ID(+);
 
+
 /*
   Montar uma consulta com os 20 produtos que têm mais saída e a soma total dos valores vendidos destes
   produtos.
 */
 
---Coloquei apelidos para ficar mais fácil a visualização
+--  Foi pedido para mostrar apenas vendas, favor ignorar as compras que o cliente fez.
+
+--  Coloquei apelidos para ficar mais fácil a visualização
+
 SELECT P.PRO_ID COD_PRODUTO, P.PRO_NAME NOME_PRODUTO, P.PRO_QTY QTD_PRODUTO_EM_ESTOQUE, 
        M.PRM_PURCHASES TOTAL_QTD_MOV_COMPRAS, M.PRM_SALES TOTAL_QTD_MOV_VENDAS,
        O.ORI_VALUE_SALES TOTAL_VALOR_VENDAS, O.ORI_VALUE_PURCHASES TOTAL_VALOR_COMPRAS
